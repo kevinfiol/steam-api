@@ -104,7 +104,7 @@ async function runRoute(url: URL): Promise<Response> {
 
             return new Response(JSON.stringify(payload), {
                 status: payload.error ? 500 : 200,
-                headers: { contentType: 'application/json' }
+                headers: { 'content-type': 'application/json' }
             });
         }
     }
