@@ -16,7 +16,7 @@ type Fetcher = (
     error: Error | string
 }>;
 
-export const Steam = ({ fetcher, apiKey }: { fetcher: Fetcher, apiKey: string }) => {
+export const Steam = ({ db, fetcher, apiKey }: { db: any, fetcher: Fetcher, apiKey: string }) => {
     const apiCall = async (query: URLSearchParams, iface: string, command: string, version: string) => {
         query.append('key', apiKey);
 
@@ -81,6 +81,8 @@ export const Steam = ({ fetcher, apiKey }: { fetcher: Fetcher, apiKey: string })
             };
 
             // TODO: add app to db here
+            const t = await db.insertApp(app);
+            console.log(t);
             // TODO: add categories to db here
         } catch (e) {
             console.error(e);

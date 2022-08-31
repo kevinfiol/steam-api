@@ -1,9 +1,27 @@
 import { Steam } from './steam.ts';
+import { Postgres } from './postgres.ts';
 import { ROUTES } from './routes.ts';
 import { dotenv, serve } from './deps.ts';
 
-const { HOSTNAME, STEAM_API_KEY } = await dotenv.config({ safe: true });
-const steam = Steam({ fetcher, apiKey: STEAM_API_KEY });
+const {
+    HOSTNAME,
+    STEAM_API_KEY,
+    PG_USERNAME,
+    PG_PASSWORD,
+    PG_DB,
+    PG_HOST,
+    PG_PORT
+} = await dotenv.config({ safe: true });
+
+const db = Postgres({
+    host: PG_HOST,
+    port: PG_PORT,
+    database: PG_DB,
+    username: PG_USERNAME,
+    password: PG_PASSWORD
+});
+
+const steam = Steam({ db, fetcher, apiKey: STEAM_API_KEY });
 
 const routeMap = {
     STEAM_API: {
@@ -71,6 +89,7 @@ const routeMap = {
 };
 
 serve(async (req) => {
+    // TODO: allow methods
     const url = new URL(req.url);
     const response = await runRoute(url);
     return response;
