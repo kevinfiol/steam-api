@@ -168,7 +168,26 @@ export const Steam = ({ db, fetcher, apiKey }: { db: any, fetcher: Fetcher, apiK
                     payload.data.push(identifier);
                 }
             } catch (e) {
-                payload.error = e;
+                payload.error = e.message;
+            }
+
+            return payload;
+        },
+
+        async getAllCategories() {
+            const payload: Payload = { data: [], error: '' };
+
+            try {
+                const rows = await db.getCategories();
+
+                const categoryMap = rows.reduce((a, c) => {
+                    a[c.category_id] = c.description;
+                    return a;
+                }, {});
+
+                payload.data.push(categoryMap);
+            } catch (e) {
+                payload.error = e.message;
             }
 
             return payload;

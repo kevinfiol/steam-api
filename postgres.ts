@@ -6,7 +6,8 @@ export const Postgres = (config = {}) => {
     return {
         async getApp(steam_appid: number) {
             return await sql`
-                select * from steam_app
+                select *
+                from steam_app
                 where steam_appid = ${steam_appid}
             `;
         },
@@ -33,7 +34,7 @@ export const Postgres = (config = {}) => {
 
         async getCategories() {
             return await sql`
-                select * from steam_category
+                select category_id, description from steam_category
             `;
         },
 

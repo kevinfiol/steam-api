@@ -59,15 +59,18 @@ const routeMap = {
         }
     },
 
-    // GET_STEAM_CATEGORIES: {
-    //     pattern: createPattern(ROUTES.GET_STEAM_CATEGORIES),
-    //     action: noop,
-    // },
+    GET_STEAM_CATEGORIES: {
+        methods: ['GET'],
+        pattern: createPattern(ROUTES.GET_STEAM_CATEGORIES),
+        action: () => {
+            return steam.getAllCategories();
+        },
+    },
 
-    // GET_PROFILES: {
-    //     pattern: createPattern(ROUTES.GET_PROFILES),
-    //     action: noop,
-    // },
+    GET_PROFILES: {
+        pattern: createPattern(ROUTES.GET_PROFILES),
+        action: noop,
+    },
 
     // GET_FRIENDS: {
     //     pattern: createPattern(ROUTES.GET_FRIENDS),
