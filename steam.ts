@@ -67,23 +67,29 @@ export const Steam = ({ db, fetcher, apiKey }: { db: any, fetcher: Fetcher, apiK
                 name,
                 header_image,
                 is_free,
-                platforms,
-                categories
+                platforms
             } = res.data;
 
-            app = {
+            const categories: Array<{ id: number, description: string }> = res.data.categories;
+
+            const columns = {
                 steam_appid,
                 name,
                 header_image,
                 is_free,
                 platforms: platforms,
-                categories: categories.map((c: Record<string, string>) => c.id)
+                categories: categories.map(c => c.id)
             };
 
-            // TODO: add app to db here
-            const t = await db.insertApp(app);
-            console.log(t);
-            // TODO: add categories to db here
+            // save app to db
+            [app] = await db.insertApp(columns);
+
+            // save categories to db
+            const dbCategories = categories.map(c =>
+                ({ ...c, category_id: c.id })
+            );
+
+            await db.insertCategories(dbCategories);
         } catch (e) {
             console.error(e);
         }
@@ -124,14 +130,24 @@ export const Steam = ({ db, fetcher, apiKey }: { db: any, fetcher: Fetcher, apiK
         async getSteamAppDetails(query: URLSearchParams) {
             const payload: Payload = { data: [], error: '' };
             const appids = query.get('appids');
+            let app;
 
             if (!appids) {
                 payload.error = 'No appids provided';
                 return payload;
             }
 
-            const app = await getSteamApp(appids);
-            payload.data.push(app);
+            try {
+                const [row] = await db.getApp(appids);
+
+                if (row) app = row;
+                else app = await getSteamApp(appids);
+
+                payload.data.push(app);
+            } catch (e) {
+                payload.error = e.message;
+            }
+
             return payload;
         },
 
