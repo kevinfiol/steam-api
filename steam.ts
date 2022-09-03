@@ -151,7 +151,7 @@ export const Steam = ({ db, fetcher, apiKey }: { db: any, fetcher: Fetcher, apiK
         steamApi: apiCall,
         storeApi: storeCall,
 
-        async getSteamAppDetails(query: URLSearchParams) {
+        async getAppDetails(query: URLSearchParams) {
             const payload: Payload = { data: [], error: '' };
             const appids = query.get('appids');
             let app;
@@ -175,7 +175,7 @@ export const Steam = ({ db, fetcher, apiKey }: { db: any, fetcher: Fetcher, apiK
             return payload;
         },
 
-        async getSteamID(query: URLSearchParams) {
+        async getSteamId(query: URLSearchParams) {
             const payload: Payload = { data: [], error: '' };
             const identifier = query.get('identifier');
 
@@ -198,7 +198,7 @@ export const Steam = ({ db, fetcher, apiKey }: { db: any, fetcher: Fetcher, apiK
             return payload;
         },
 
-        async getAllCategories() {
+        async getCategories() {
             const payload: Payload = { data: [], error: '' };
 
             try {
@@ -217,7 +217,7 @@ export const Steam = ({ db, fetcher, apiKey }: { db: any, fetcher: Fetcher, apiK
             return payload;
         },
 
-        async getAllProfiles(query: URLSearchParams) {
+        async getProfiles(query: URLSearchParams) {
             const payload: Payload = { data: [], error: '' };
 
             let steamid = query.get('steamid') || '';

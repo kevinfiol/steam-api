@@ -1,10 +1,12 @@
-import { postgres } from '../deps.ts';
+import { dotenv, postgres } from '../deps.ts';
 
-const PG_USERNAME = Deno.env.get('PG_USERNAME') || '';
-const PG_PASSWORD = Deno.env.get('PG_PASSWORD') || '';
-const PG_DB = Deno.env.get('PG_DB') || '';
-const PG_HOST = Deno.env.get('PG_HOST') || '';
-const PG_PORT = Deno.env.get('PG_PORT') || ''; 
+const {
+    PG_USERNAME,
+    PG_PASSWORD,
+    PG_DB,
+    PG_HOST,
+    PG_PORT
+} = await dotenv.config({ safe: true });
 
 export const sql = postgres({
     host: PG_HOST,

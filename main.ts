@@ -1,18 +1,26 @@
-import { serve } from './deps.ts';
+import { dotenv, serve } from './deps.ts';
+import { fetcher } from './utils.ts';
 import { Steam } from './steam.ts';
 import { Postgres } from './postgres.ts';
 import { ROUTES } from './routes.ts';
 
-const SERVER_PORT = Deno.env.get('SERVER_PORT') || 80;
-const HOSTNAME = Deno.env.get('HOSTNAME') || '';
-const STEAM_API_KEY = Deno.env.get('STEAM_API_KEY') || '';
-const PG_USERNAME = Deno.env.get('PG_USERNAME') || '';
-const PG_PASSWORD = Deno.env.get('PG_PASSWORD') || '';
-const PG_DB = Deno.env.get('PG_DB') || '';
-const PG_HOST = Deno.env.get('PG_HOST') || '';
-const PG_PORT = Deno.env.get('PG_PORT') || ''; 
+// load .env variables
+const {
+    SERVER_PORT,
+    HOSTNAME,
+    STEAM_API_KEY,
+    PG_USERNAME,
+    PG_PASSWORD,
+    PG_DB,
+    PG_HOST,
+    PG_PORT
+} = await dotenv.config({ safe: true });
 
+// create db instance
 const db = Postgres({
+    // need `keep_alive` while Deno.Conn#setKeepAlive is unstable
+    // todo: remove this in the future
+    keep_alive: false,
     host: PG_HOST,
     port: PG_PORT,
     database: PG_DB,
@@ -20,9 +28,28 @@ const db = Postgres({
     password: PG_PASSWORD
 });
 
+// initialize steam service
 const steam = Steam({ db, fetcher, apiKey: STEAM_API_KEY });
 
+// url pattern helper
+const createPattern = (pathname: string) => {
+    return new URLPattern({
+        pathname,
+        protocol: 'http{s}?',
+        hostname: HOSTNAME
+    });
+}
+
 const routeMap = {
+    INDEX: {
+        methods: ['GET'],
+        pattern: createPattern(ROUTES.INDEX),
+        action: (_query: URLSearchParams, _params = {}) => ({
+            data: 'OK',
+            error: ''
+        }),
+    },
+
     STEAM_API: {
         methods: ['GET'],
         pattern: createPattern(ROUTES.STEAM_API),
@@ -41,28 +68,19 @@ const routeMap = {
         }
     },
 
-    INDEX: {
+    GET_APP_DETAILS: {
         methods: ['GET'],
-        pattern: createPattern(ROUTES.INDEX),
-        action: (_query: URLSearchParams, _params = {}) => ({
-            data: 'OK',
-            error: ''
-        }),
-    },
-
-    GET_STEAM_APP_DETAILS: {
-        methods: ['GET'],
-        pattern: createPattern(ROUTES.GET_STEAM_APP_DETAILS),
+        pattern: createPattern(ROUTES.GET_APP_DETAILS),
         action: (query: URLSearchParams) => {
-            return steam.getSteamAppDetails(query);
+            return steam.getAppDetails(query);
         }
     },
 
-    GET_STEAM_CATEGORIES: {
+    GET_CATEGORIES: {
         methods: ['GET'],
-        pattern: createPattern(ROUTES.GET_STEAM_CATEGORIES),
+        pattern: createPattern(ROUTES.GET_CATEGORIES),
         action: () => {
-            return steam.getAllCategories();
+            return steam.getCategories();
         },
     },
 
@@ -70,7 +88,7 @@ const routeMap = {
         methods: ['GET'],
         pattern: createPattern(ROUTES.GET_PROFILES),
         action: (query: URLSearchParams) => {
-            return steam.getAllProfiles(query);
+            return steam.getProfiles(query);
         },
     },
 
@@ -86,11 +104,12 @@ const routeMap = {
         methods: ['GET'],
         pattern: createPattern(ROUTES.GET_STEAM_ID),
         action: (query: URLSearchParams) => {
-            return steam.getSteamID(query);
+            return steam.getSteamId(query);
         }
     },
 };
 
+// start server
 serve(async (req) => {
     const url = new URL(req.url);
     const response = await runRoute(req.method, url);
@@ -98,14 +117,6 @@ serve(async (req) => {
 }, {
     port: Number(SERVER_PORT)
 });
-
-function createPattern(pathname: string) {
-    return new URLPattern({
-        pathname,
-        protocol: 'http{s}?',
-        hostname: HOSTNAME
-    });
-}
 
 async function runRoute(method: string, url: URL): Promise<Response> {
     const routes = Object.values(routeMap);
@@ -143,23 +154,4 @@ async function runRoute(method: string, url: URL): Promise<Response> {
         status: 404,
         statusText: 'Not Found'
     });
-}
-
-async function fetcher(url: string, opts = {}) {
-    const payload = { data: null, error: '' };
-
-    try {
-        const response = await fetch(url, opts);
-
-        if (!response.ok) {
-            throw Error(`${response.status} ${response.statusText}`);
-        }
-
-        const data = await response.json();
-        payload.data = data;
-    } catch (e) {
-        payload.error = e;
-    }
-
-    return payload;
 }
