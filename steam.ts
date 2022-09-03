@@ -162,7 +162,7 @@ export const Steam = ({ db, fetcher, apiKey }: { db: any, fetcher: Fetcher, apiK
             }
 
             try {
-                const [row] = await db.getApp(appids);
+                const [row] = await db.getApps(appids);
 
                 if (row) app = row;
                 else app = await getSteamApp(appids);
@@ -260,8 +260,89 @@ export const Steam = ({ db, fetcher, apiKey }: { db: any, fetcher: Fetcher, apiK
 
                 // split the user's profile from their friends' profile
                 const idx = profiles.findIndex(p => p.steamid == steamid);
+                const [user] = profiles.splice(idx, 1);
+
+                // sort friend profiles by name
+                profiles.sort((a, b) => a.personaname > b.personaname);
+
+                payload.data.push({
+                    idString: steamidsStr,
+                    user,
+                    friends: profiles
+                });
             } catch (e) {
                 payload.error = e.message || e;
+            }
+
+            return payload;
+        },
+
+        async getCommonApps(query: URLSearchParams) {
+            const payload: Payload = { data: [], error: '' };
+            const steamidsStr = query.get('steamids') || '';
+            const rawSteamids = steamidsStr.split(',');
+
+            try {
+                // const steamids = rawSteamids;
+                const steamids = [];
+
+                // allow vanity steamids
+                for (let steamid of rawSteamids) {
+                    if (!Number.isFinite(Number(steamid))) {
+                        steamid = await resolveVanityURL(steamid);
+                    }
+
+                    steamids.push(steamid);
+                }
+
+                const results = await Promise.all(steamids.map((steamid: string) => {
+                    query = new URLSearchParams({
+                        steamid,
+                        include_appinfo: '1',
+                        include_played_free_games: '1'
+                    });
+
+                    return apiCall(query,
+                        'IPlayerService',
+                        'GetOwnedGames',
+                        'v0001'
+                    );
+                }));
+
+                const libs = [];
+                for (const result of results) {
+                    // @ts-ignore: external api data
+                    const { games } = result.data[0].response;
+                    const appids = games.map((game) => game.appid);
+                    libs.push(appids);
+                }
+
+                const first = libs.pop();
+                const commonAppIds = libs.reduce((common, lib) => {
+                    return common.filter((id) => lib.includes(id));
+                }, first)
+
+                // check db for stored apps
+                const appsFromDb = await db.getApps(commonAppIds);
+                const idsFromDb = appsFromDb.map((app) => app.steam_appid);
+                const appsToFetch = commonAppIds.filter((id) => !idsFromDb.includes(id));
+
+                // fetch apps that are not in the db
+                let fetchedApps = [];
+                if (appsToFetch.length > 0) {
+                    fetchedApps = await Promise.all(appsToFetch.map((id) => {
+                        return getSteamApp(id);
+                    }));
+
+                    // filter out null/undefined results
+                    fetchedApps = fetchedApps.filter(a => a);
+                }
+
+                const commonApps = [ ...appsFromDb, ...fetchedApps ];
+                commonApps.sort((a, b) => a.name.localeCompare(b.name));
+                payload.data.push(commonApps);
+            } catch (e) {
+                payload.error = e.message;
             }
 
             return payload;

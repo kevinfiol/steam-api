@@ -1,7 +1,7 @@
+import { serve } from './deps.ts';
 import { Steam } from './steam.ts';
 import { Postgres } from './postgres.ts';
 import { ROUTES } from './routes.ts';
-import { serve } from './deps.ts';
 
 const SERVER_PORT = Deno.env.get('SERVER_PORT') || 80;
 const HOSTNAME = Deno.env.get('HOSTNAME') || '';
@@ -74,15 +74,13 @@ const routeMap = {
         },
     },
 
-    // GET_FRIENDS: {
-    //     pattern: createPattern(ROUTES.GET_FRIENDS),
-    //     action: noop,
-    // },
-
-    // GET_COMMON_APPS: {
-    //     pattern: createPattern(ROUTES.GET_COMMON_APPS),
-    //     action: noop,
-    // },
+    GET_COMMON_APPS: {
+        methods: ['GET'],
+        pattern: createPattern(ROUTES.GET_COMMON_APPS),
+        action: (query: URLSearchParams) => {
+            return steam.getCommonApps(query);
+        },
+    },
 
     GET_STEAM_ID: {
         methods: ['GET'],
@@ -152,6 +150,11 @@ async function fetcher(url: string, opts = {}) {
 
     try {
         const response = await fetch(url, opts);
+
+        if (!response.ok) {
+            throw Error(`${response.status} ${response.statusText}`);
+        }
+
         const data = await response.json();
         payload.data = data;
     } catch (e) {

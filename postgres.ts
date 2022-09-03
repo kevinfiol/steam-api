@@ -4,11 +4,14 @@ export const Postgres = (config = {}) => {
     const sql = postgres(config);
 
     return {
-        async getApp(steam_appid: number) {
+        async getApps(steam_appids: number | number[]) {
+            if (!Array.isArray(steam_appids))
+                steam_appids = [steam_appids];
+
             return await sql`
                 select *
                 from steam_app
-                where steam_appid = ${steam_appid}
+                where steam_appid in ${ sql(steam_appids) }
             `;
         },
 
@@ -27,6 +30,7 @@ export const Postgres = (config = {}) => {
                         'updated_at'
                     )
                 }
+                on conflict do nothing
 
                 returning *
             `;
