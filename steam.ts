@@ -28,6 +28,7 @@ export const Steam = ({ db, fetcher, apiKey }: { db: any, fetcher: Fetcher, apiK
             if (error) throw error;
             payload.data.push(data);
         } catch (e) {
+            console.error(e);
             payload.error = e.message;
         }
 
@@ -43,6 +44,7 @@ export const Steam = ({ db, fetcher, apiKey }: { db: any, fetcher: Fetcher, apiK
             if (error) throw error;
             payload.data.push(data);
         } catch (e) {
+            console.error(e);
             payload.error = e.message;
         }
 
@@ -169,6 +171,7 @@ export const Steam = ({ db, fetcher, apiKey }: { db: any, fetcher: Fetcher, apiK
 
                 payload.data.push(app);
             } catch (e) {
+                console.error(e);
                 payload.error = e.message;
             }
 
@@ -192,6 +195,7 @@ export const Steam = ({ db, fetcher, apiKey }: { db: any, fetcher: Fetcher, apiK
                     payload.data.push(identifier);
                 }
             } catch (e) {
+                console.error(e);
                 payload.error = e.message;
             }
 
@@ -211,6 +215,7 @@ export const Steam = ({ db, fetcher, apiKey }: { db: any, fetcher: Fetcher, apiK
 
                 payload.data.push(categoryMap);
             } catch (e) {
+                console.error(e);
                 payload.error = e.message;
             }
 
@@ -271,6 +276,7 @@ export const Steam = ({ db, fetcher, apiKey }: { db: any, fetcher: Fetcher, apiK
                     friends: profiles
                 });
             } catch (e) {
+                console.error(e);
                 payload.error = e.message || e;
             }
 
@@ -342,6 +348,7 @@ export const Steam = ({ db, fetcher, apiKey }: { db: any, fetcher: Fetcher, apiK
                 commonApps.sort((a, b) => a.name.localeCompare(b.name));
                 payload.data.push(commonApps);
             } catch (e) {
+                console.error(e);
                 payload.error = e.message;
             }
 
