@@ -123,6 +123,30 @@ export const Steam = ({ db, fetcher, apiKey }: { db: any, fetcher: Fetcher, apiK
         return out;
     };
 
+    const getPlayerSummaries = async (steamids: string) => {
+        let summaries = [];
+        const query = new URLSearchParams({ steamids });
+
+        try {
+            const { data, error } = await apiCall(query,
+                'ISteamUser',
+                'GetPlayerSummaries',
+                'v0002'
+            );
+
+            if (error) throw error;
+            if (!data[0]) throw 'No player summaries found';
+
+            // @ts-ignore: external api response
+            summaries = data[0].response.players;
+
+        } catch (e) {
+            console.error(e);
+        }
+
+        return summaries;
+    };
+
     return {
         steamApi: apiCall,
         storeApi: storeCall,
@@ -188,6 +212,56 @@ export const Steam = ({ db, fetcher, apiKey }: { db: any, fetcher: Fetcher, apiK
                 payload.data.push(categoryMap);
             } catch (e) {
                 payload.error = e.message;
+            }
+
+            return payload;
+        },
+
+        async getAllProfiles(query: URLSearchParams) {
+            const payload: Payload = { data: [], error: '' };
+
+            let steamid = query.get('steamid') || '';
+
+            try {
+                if (!Number.isFinite(steamid)) {
+                    steamid = await resolveVanityURL(steamid);
+                }
+
+                query = new URLSearchParams({ steamid, relationship: 'friend' });
+
+                // retrieve friends list
+                const { data, error } = await apiCall(query, 'ISteamUser', 'GetFriendList', 'v0001');
+                if (error) throw error;
+
+                // @ts-ignore: external api
+                const { friendslist: { friends } } = data[0];
+                
+                // collect all steamids
+                const steamids = [
+                    steamid,
+                    ...friends.map((f: { steamid: number }) => f.steamid)
+                ];
+
+                const steamidsStr = steamids.join(',');
+
+                // retrieve player summaries
+                const summaries = await getPlayerSummaries(steamidsStr);
+
+                // @ts-ignore: external api type
+                const profiles = summaries.map(s => ({
+                    steamid: s.steamid,
+                    personaname: s.personaname,
+                    profileurl: s.profileurl,
+                    avatar: s.avatar,
+                    visible: s.communityvisibilitystate == 3
+                        ? true
+                        : false
+                }));
+
+                // split the user's profile from their friends' profile
+                const idx = profiles.findIndex(p => p.steamid == steamid);
+            } catch (e) {
+                payload.error = e.message || e;
             }
 
             return payload;

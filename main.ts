@@ -1,17 +1,16 @@
 import { Steam } from './steam.ts';
 import { Postgres } from './postgres.ts';
 import { ROUTES } from './routes.ts';
-import { dotenv, serve } from './deps.ts';
+import { serve } from './deps.ts';
 
-const {
-    HOSTNAME,
-    STEAM_API_KEY,
-    PG_USERNAME,
-    PG_PASSWORD,
-    PG_DB,
-    PG_HOST,
-    PG_PORT
-} = await dotenv.config({ safe: true });
+const SERVER_PORT = Deno.env.get('SERVER_PORT') || 80;
+const HOSTNAME = Deno.env.get('HOSTNAME') || '';
+const STEAM_API_KEY = Deno.env.get('STEAM_API_KEY') || '';
+const PG_USERNAME = Deno.env.get('PG_USERNAME') || '';
+const PG_PASSWORD = Deno.env.get('PG_PASSWORD') || '';
+const PG_DB = Deno.env.get('PG_DB') || '';
+const PG_HOST = Deno.env.get('PG_HOST') || '';
+const PG_PORT = Deno.env.get('PG_PORT') || ''; 
 
 const db = Postgres({
     host: PG_HOST,
@@ -68,8 +67,11 @@ const routeMap = {
     },
 
     GET_PROFILES: {
+        methods: ['GET'],
         pattern: createPattern(ROUTES.GET_PROFILES),
-        action: noop,
+        action: (query: URLSearchParams) => {
+            return steam.getAllProfiles(query);
+        },
     },
 
     // GET_FRIENDS: {
@@ -92,10 +94,11 @@ const routeMap = {
 };
 
 serve(async (req) => {
-    // TODO: allow methods
     const url = new URL(req.url);
-    const response = await runRoute(url);
+    const response = await runRoute(req.method, url);
     return response;
+}, {
+    port: Number(SERVER_PORT)
 });
 
 function createPattern(pathname: string) {
@@ -106,7 +109,7 @@ function createPattern(pathname: string) {
     });
 }
 
-async function runRoute(url: URL): Promise<Response> {
+async function runRoute(method: string, url: URL): Promise<Response> {
     const routes = Object.values(routeMap);
 
     for (let i = 0, len = routes.length; i < len; i++) {
@@ -120,6 +123,13 @@ async function runRoute(url: URL): Promise<Response> {
         });
 
         if (out !== null) {
+            if (!route.methods.includes(method)) {
+                return new Response('405 Method Not Allowed', {
+                    status: 405,
+                    headers: { 'content-type': 'text/plain' }
+                });
+            }
+
             const query = new URLSearchParams(out.search.input);
             const params = out.pathname.groups;
             const payload = await route.action(query, params);
