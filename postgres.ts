@@ -1,7 +1,7 @@
 import { postgres } from './deps.ts';
 
-export const Postgres = (config = {}) => {
-    const sql = postgres(config);
+export const Postgres = (conn: string, config = {}) => {
+    const sql = postgres(conn, config);
 
     return {
         async getApps(steam_appids: number | number[]) {

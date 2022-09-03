@@ -17,15 +17,10 @@ const {
 } = await dotenv.config({ safe: true });
 
 // create db instance
-const db = Postgres({
+const db = Postgres(`postgres://${PG_USERNAME}:${PG_PASSWORD}@${PG_HOST}:${PG_PORT}/${PG_DB}`, {
     // need `keep_alive` while Deno.Conn#setKeepAlive is unstable
     // todo: remove this in the future
-    keep_alive: false,
-    host: PG_HOST,
-    port: PG_PORT,
-    database: PG_DB,
-    username: PG_USERNAME,
-    password: PG_PASSWORD
+    keep_alive: false
 });
 
 // initialize steam service
