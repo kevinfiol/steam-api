@@ -1,22 +1,13 @@
 const API_URL = 'http://api.steampowered.com';
 const STORE_URL = 'http://store.steampowered.com/api';
 
-type Payload = {
-    data: unknown[],
-    error: Error | string
+type Params = {
+    db: Database;
+    fetcher: Fetcher<{ query: Record<string, unknown> }>;
+    apiKey: string;
 };
 
-type Fetcher = (
-    url: string,
-    { query }?: {
-        query?: Record<string, unknown>
-    }
-) => Promise<{
-    data: unknown,
-    error: Error | string
-}>;
-
-export const Steam = ({ db, fetcher, apiKey }: { db: any, fetcher: Fetcher, apiKey: string }) => {
+export const Steam = ({ db, fetcher, apiKey }: Params) => {
     const apiCall = async (query: URLSearchParams, iface: string, command: string, version: string) => {
         query.append('key', apiKey);
 
@@ -88,7 +79,7 @@ export const Steam = ({ db, fetcher, apiKey }: { db: any, fetcher: Fetcher, apiK
 
             // save categories to db
             const dbCategories = categories.map(c =>
-                ({ ...c, category_id: c.id })
+                ({ ...c, category_id: c.id.toString() })
             );
 
             await db.insertCategories(dbCategories);
@@ -164,7 +155,7 @@ export const Steam = ({ db, fetcher, apiKey }: { db: any, fetcher: Fetcher, apiK
             }
 
             try {
-                const [row] = await db.getApps(appids);
+                const [row] = await db.getApps(Number(appids));
 
                 if (row) app = row;
                 else app = await getSteamApp(appids);
@@ -211,7 +202,7 @@ export const Steam = ({ db, fetcher, apiKey }: { db: any, fetcher: Fetcher, apiK
                 const categoryMap = rows.reduce((a, c) => {
                     a[c.category_id] = c.description;
                     return a;
-                }, {});
+                }, {} as { [key: string]: string });
 
                 payload.data.push(categoryMap);
             } catch (e) {
@@ -263,11 +254,11 @@ export const Steam = ({ db, fetcher, apiKey }: { db: any, fetcher: Fetcher, apiK
                         : false
                 }));
 
-                // split the user's profile from their friends' profile
+                // @ts-ignore: split the user's profile from their friends' profile
                 const idx = profiles.findIndex(p => p.steamid == steamid);
                 const [user] = profiles.splice(idx, 1);
 
-                // sort friend profiles by name
+                // @ts-ignore: sort friend profiles by name
                 profiles.sort((a, b) => a.personaname > b.personaname);
 
                 payload.data.push({

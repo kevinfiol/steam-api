@@ -1,27 +1,28 @@
 import { postgres } from './deps.ts';
 
 export const Postgres = (config = {}) => {
-    console.log(config);
     const sql = postgres(config);
 
     return {
-        async getApps(steam_appids: number | number[]) {
+        getApps(steam_appids: number | number[]) {
             if (!Array.isArray(steam_appids))
                 steam_appids = [steam_appids];
 
-            return await sql`
+            return sql`
                 select *
                 from steam_app
                 where steam_appid in ${ sql(steam_appids) }
             `;
         },
 
-        async insertApp(app) {
-            app = { ...app, updated_at: sql`now()` };
+        async insertApp(app: Partial<App>) {
+            // @ts-ignore: lib types
+            const appRow: App = { ...app, updated_at: sql`now()` };
 
             return await sql`
                 insert into steam_app ${
-                    sql(app,
+                    // @ts-ignore: lib types
+                    sql(appRow,
                         'steam_appid',
                         'name',
                         'header_image',
@@ -37,14 +38,14 @@ export const Postgres = (config = {}) => {
             `;
         },
 
-        async getCategories() {
-            return await sql`
+        getCategories() {
+            return sql`
                 select category_id, description from steam_category
             `;
         },
 
-        async insertCategories(categories: Array<{ category_id: string, description: string }>) {
-            return await sql`
+        insertCategories(categories: Category[]) {
+            return sql`
                 insert into steam_category ${
                     sql(categories,
                         'category_id',

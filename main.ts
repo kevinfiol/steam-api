@@ -5,14 +5,14 @@ import { Postgres } from './postgres.ts';
 import { ROUTES } from './routes.ts';
 
 // load .env variables
-const SERVER_PORT = Deno.env.get('SERVER_PORT') || ''
-const HOSTNAME = Deno.env.get('HOSTNAME') || ''
-const STEAM_API_KEY = Deno.env.get('STEAM_API_KEY') || ''
-const PG_USERNAME = Deno.env.get('PG_USERNAME') || ''
-const PG_PASSWORD = Deno.env.get('PG_PASSWORD') || ''
-const PG_DB = Deno.env.get('PG_DB') || ''
-const PG_HOST = Deno.env.get('PG_HOST') || ''
-const PG_PORT = Deno.env.get('PG_PORT') || ''
+const SERVER_PORT = Deno.env.get('SERVER_PORT') || 80;
+const HOSTNAME = Deno.env.get('HOSTNAME') || 'localhost';
+const STEAM_API_KEY = Deno.env.get('STEAM_API_KEY') || '';
+const PG_USERNAME = Deno.env.get('PG_USERNAME') || '';
+const PG_PASSWORD = Deno.env.get('PG_PASSWORD') || '';
+const PG_DB = Deno.env.get('PG_DB') || '';
+const PG_HOST = Deno.env.get('PG_HOST') || '';
+const PG_PORT = Deno.env.get('PG_PORT') || '';
 
 // create db instance
 const db = Postgres({
@@ -36,7 +36,7 @@ const createPattern = (pathname: string) => {
         protocol: 'http{s}?',
         hostname: HOSTNAME
     });
-}
+};
 
 const routeMap = {
     INDEX: {
@@ -119,9 +119,7 @@ serve(async (req) => {
 async function runRoute(method: string, url: URL): Promise<Response> {
     const routes = Object.values(routeMap);
 
-    for (let i = 0, len = routes.length; i < len; i++) {
-        const route = routes[i];
-
+    for (const route of routes) {
         const out = route.pattern.exec({
             protocol: url.protocol,
             pathname: url.pathname,

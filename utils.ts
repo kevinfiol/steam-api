@@ -1,4 +1,4 @@
-export async function fetcher(url: string, opts = {}) {
+export async function fetcher(url: string, opts: RequestInit = {}) {
     const payload = { data: null, error: '' };
 
     try {
