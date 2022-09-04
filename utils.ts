@@ -5,12 +5,12 @@ export async function fetcher(url: string, opts: RequestInit = {}) {
         const response = await fetch(url, opts);
 
         if (!response.ok) {
-            throw Error(`${response.status} ${response.statusText}`);
+            throw Error(`${url}: ${response.status} ${response.statusText}`);
         }
 
-        const data = await response.json();
-        payload.data = data;
+        payload.data = await response.json() || '';
     } catch (e) {
+        console.error(e);
         payload.error = e;
     }
 

@@ -1,6 +1,6 @@
 import { postgres } from './deps.ts';
 
-export const Postgres = (config = {}) => {
+export const Postgres = (config = {}): Database => {
     const sql = postgres(config);
 
     return {
@@ -8,20 +8,25 @@ export const Postgres = (config = {}) => {
             if (!Array.isArray(steam_appids))
                 steam_appids = [steam_appids];
 
-            return sql`
+            return sql<App[]>`
                 select *
                 from steam_app
                 where steam_appid in ${ sql(steam_appids) }
             `;
         },
 
-        async insertApp(app: Partial<App>) {
-            // @ts-ignore: lib types
-            const appRow: App = { ...app, updated_at: sql`now()` };
+        getCategories() {
+            return sql<Category[]>`
+                select category_id, description from steam_category
+            `;
+        },
 
-            return await sql`
+        insertApp(app: Partial<App>) {
+            const appRow = { ...app, updated_at: sql`now()` };
+
+            return sql`
                 insert into steam_app ${
-                    // @ts-ignore: lib types
+                    // @ts-ignore: finicky postgres.js types
                     sql(appRow,
                         'steam_appid',
                         'name',
@@ -35,12 +40,6 @@ export const Postgres = (config = {}) => {
                 on conflict do nothing
 
                 returning *
-            `;
-        },
-
-        getCategories() {
-            return sql`
-                select category_id, description from steam_category
             `;
         },
 

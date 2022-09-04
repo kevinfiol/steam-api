@@ -3,7 +3,7 @@ const STORE_URL = 'http://store.steampowered.com/api';
 
 type Params = {
     db: Database;
-    fetcher: Fetcher<{ query: Record<string, unknown> }>;
+    fetcher: Fetcher;
     apiKey: string;
 };
 
@@ -20,7 +20,7 @@ export const Steam = ({ db, fetcher, apiKey }: Params) => {
             payload.data.push(data);
         } catch (e) {
             console.error(e);
-            payload.error = e.message;
+            payload.error = 'Steam apiCall failed.';
         }
 
         return payload;
@@ -36,7 +36,7 @@ export const Steam = ({ db, fetcher, apiKey }: Params) => {
             payload.data.push(data);
         } catch (e) {
             console.error(e);
-            payload.error = e.message;
+            payload.error = 'Steam storeCall failed.';
         }
 
         return payload;
@@ -84,7 +84,7 @@ export const Steam = ({ db, fetcher, apiKey }: Params) => {
 
             await db.insertCategories(dbCategories);
         } catch (e) {
-            console.error(e);
+            console.error('getSteamApp', e);
         }
 
         return app;
@@ -110,7 +110,7 @@ export const Steam = ({ db, fetcher, apiKey }: Params) => {
 
             out = res.steamid;
         } catch (e) {
-            console.error(e);
+            console.error('resolveVanityURL', e);
         }
 
         return out;
@@ -134,7 +134,7 @@ export const Steam = ({ db, fetcher, apiKey }: Params) => {
             summaries = data[0].response.players;
 
         } catch (e) {
-            console.error(e);
+            console.error('getPlayerSummaries', e);
         }
 
         return summaries;
@@ -162,8 +162,8 @@ export const Steam = ({ db, fetcher, apiKey }: Params) => {
 
                 payload.data.push(app);
             } catch (e) {
-                console.error(e);
-                payload.error = e.message;
+                console.error('getAppDetails', e);
+                payload.error = 'getAppDetails failed.';
             }
 
             return payload;
@@ -187,7 +187,7 @@ export const Steam = ({ db, fetcher, apiKey }: Params) => {
                 }
             } catch (e) {
                 console.error(e);
-                payload.error = e.message;
+                payload.error = 'getSteamId failed.';
             }
 
             return payload;
@@ -207,7 +207,7 @@ export const Steam = ({ db, fetcher, apiKey }: Params) => {
                 payload.data.push(categoryMap);
             } catch (e) {
                 console.error(e);
-                payload.error = e.message;
+                payload.error = 'getCategories failed.';
             }
 
             return payload;
@@ -254,12 +254,12 @@ export const Steam = ({ db, fetcher, apiKey }: Params) => {
                         : false
                 }));
 
-                // @ts-ignore: split the user's profile from their friends' profile
-                const idx = profiles.findIndex(p => p.steamid == steamid);
+                const idx = profiles.findIndex((p: { steamid: string }) => p.steamid == steamid);
                 const [user] = profiles.splice(idx, 1);
 
-                // @ts-ignore: sort friend profiles by name
-                profiles.sort((a, b) => a.personaname > b.personaname);
+                profiles.sort((a: { personaname: string }, b: { personaname: string }) =>
+                    a.personaname > b.personaname
+                );
 
                 payload.data.push({
                     idString: steamidsStr,
@@ -310,24 +310,24 @@ export const Steam = ({ db, fetcher, apiKey }: Params) => {
                 for (const result of results) {
                     // @ts-ignore: external api data
                     const { games } = result.data[0].response;
-                    const appids = games.map((game) => game.appid);
+                    const appids = games.map((game: { appid: string }) => game.appid);
                     libs.push(appids);
                 }
 
                 const first = libs.pop();
                 const commonAppIds = libs.reduce((common, lib) => {
-                    return common.filter((id) => lib.includes(id));
+                    return common.filter((id: string) => lib.includes(id));
                 }, first)
 
                 // check db for stored apps
                 const appsFromDb = await db.getApps(commonAppIds);
                 const idsFromDb = appsFromDb.map((app) => app.steam_appid);
-                const appsToFetch = commonAppIds.filter((id) => !idsFromDb.includes(id));
+                const appsToFetch = commonAppIds.filter((id: string) => !idsFromDb.includes(id));
 
                 // fetch apps that are not in the db
                 let fetchedApps = [];
                 if (appsToFetch.length > 0) {
-                    fetchedApps = await Promise.all(appsToFetch.map((id) => {
+                    fetchedApps = await Promise.all(appsToFetch.map((id: string) => {
                         return getSteamApp(id);
                     }));
 
@@ -340,7 +340,7 @@ export const Steam = ({ db, fetcher, apiKey }: Params) => {
                 payload.data.push(commonApps);
             } catch (e) {
                 console.error(e);
-                payload.error = e.message;
+                payload.error = 'getProfiles failed.';
             }
 
             return payload;

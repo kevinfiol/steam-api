@@ -27,9 +27,9 @@ type Payload = {
     error: Error | string;
 };
 
-type Fetcher<T> = (
+type Fetcher = (
     url: string,
-    opts?: T
+    opts?: RequestInit | Record<string, unknown>
 ) => Promise<{
     data: unknown;
     error: Error | string
