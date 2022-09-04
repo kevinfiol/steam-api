@@ -1,20 +1,18 @@
-import { dotenv, serve } from './deps.ts';
+import { serve } from './deps.ts';
 import { fetcher } from './utils.ts';
 import { Steam } from './steam.ts';
 import { Postgres } from './postgres.ts';
 import { ROUTES } from './routes.ts';
 
 // load .env variables
-const {
-    SERVER_PORT,
-    HOSTNAME,
-    STEAM_API_KEY,
-    PG_USERNAME,
-    PG_PASSWORD,
-    PG_DB,
-    PG_HOST,
-    PG_PORT
-} = await dotenv.config({ safe: true });
+const SERVER_PORT = Deno.env.get('SERVER_PORT') || ''
+const HOSTNAME = Deno.env.get('HOSTNAME') || ''
+const STEAM_API_KEY = Deno.env.get('STEAM_API_KEY') || ''
+const PG_USERNAME = Deno.env.get('PG_USERNAME') || ''
+const PG_PASSWORD = Deno.env.get('PG_PASSWORD') || ''
+const PG_DB = Deno.env.get('PG_DB') || ''
+const PG_HOST = Deno.env.get('PG_HOST') || ''
+const PG_PORT = Deno.env.get('PG_PORT') || ''
 
 // create db instance
 const db = Postgres({

@@ -1,6 +1,7 @@
 import { postgres } from './deps.ts';
 
 export const Postgres = (config = {}) => {
+    console.log(config);
     const sql = postgres(config);
 
     return {
