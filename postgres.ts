@@ -1,6 +1,7 @@
 import { postgres } from './deps.ts';
 
 export const Postgres = (config = {}) => {
+    console.log(config);
     const pool = new postgres.Pool(config, 2, true);
 
     const sql = async (query: string, args?: unknown[] | Record<string, unknown>) => {
