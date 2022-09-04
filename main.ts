@@ -17,11 +17,14 @@ const {
 } = await dotenv.config({ safe: true });
 
 // create db instance
-const db = await Postgres({
-    hostname: PG_HOST,
+const db = Postgres({
+    // need `keep_alive` while Deno.Conn#setKeepAlive is unstable
+    // todo: remove this in the future
+    keep_alive: false,
+    host: PG_HOST,
     port: PG_PORT,
     database: PG_DB,
-    user: PG_USERNAME,
+    username: PG_USERNAME,
     password: PG_PASSWORD
 });
 
