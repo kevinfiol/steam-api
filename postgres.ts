@@ -1,3 +1,5 @@
+/// <reference types="./types.d.ts" />
+
 import { postgres } from './deps.ts';
 
 export const Postgres = (config = {}): Database => {

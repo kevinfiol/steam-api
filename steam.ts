@@ -1,3 +1,5 @@
+/// <reference types="./types.d.ts" />
+
 const API_URL = 'http://api.steampowered.com';
 const STORE_URL = 'http://store.steampowered.com/api';
 
@@ -8,34 +10,42 @@ type Params = {
 };
 
 export const Steam = ({ db, fetcher, apiKey }: Params) => {
-    const apiCall = async (query: URLSearchParams, iface: string, command: string, version: string) => {
-        query.append('key', apiKey);
-
+    const apiCall = async (query: URLSearchParams | string, iface: string, command: string, version: string) => {
         const payload: Payload = { data: [], error: '' };
-        const url = `${API_URL}/${iface}/${command}/${version}?${query.toString()}`;
+
+        if (typeof query == 'string') {
+            query += `&key=${apiKey}`;
+        } else {
+            query.append('key', apiKey);
+            query = query.toString();
+        }
+
+        const url = `${API_URL}/${iface}/${command}/${version}?${query}`;
 
         try {
             const { data, error } = await fetcher(url);
             if (error) throw error;
             payload.data.push(data);
         } catch (e) {
-            console.error(e);
+            console.error('apiCall', e);
             payload.error = 'Steam apiCall failed.';
         }
 
         return payload;
     };
 
-    const storeCall = async (query: URLSearchParams, command: string) => {
+    const storeCall = async (query: URLSearchParams | string, command: string) => {
         const payload: Payload = { data: [], error: '' };
-        const url = `${STORE_URL}/${command}?${query.toString()}`;
+
+        if (typeof query == 'object') query = query.toString();
+        const url = `${STORE_URL}/${command}?${query}`;
 
         try {
             const { data, error } = await fetcher(url);
             if (error) throw error;
             payload.data.push(data);
         } catch (e) {
-            console.error(e);
+            console.error('storeCall', e);
             payload.error = 'Steam storeCall failed.';
         }
 
@@ -43,7 +53,7 @@ export const Steam = ({ db, fetcher, apiKey }: Params) => {
     };
 
     const getSteamApp = async (appids: string) => {
-        let app = null;
+        let app: App | null = null;
         const query = new URLSearchParams({ appids });
 
         try {
@@ -53,7 +63,10 @@ export const Steam = ({ db, fetcher, apiKey }: Params) => {
 
             // @ts-ignore: deeply-nested response objects from Store API
             const res = data[0][appids];
-            if (!res.success) throw 'Store API failed to retrieve app details.';
+
+            if (!res.success) {
+                throw 'Store API failed to retrieve app details. App may be delisted.';
+            }
 
             const {
                 steam_appid,
@@ -117,7 +130,7 @@ export const Steam = ({ db, fetcher, apiKey }: Params) => {
     };
 
     const getPlayerSummaries = async (steamids: string) => {
-        let summaries = [];
+        let summaries: PlayerSummary[] = [];
         const query = new URLSearchParams({ steamids });
 
         try {
@@ -132,7 +145,6 @@ export const Steam = ({ db, fetcher, apiKey }: Params) => {
 
             // @ts-ignore: external api response
             summaries = data[0].response.players;
-
         } catch (e) {
             console.error('getPlayerSummaries', e);
         }
@@ -144,15 +156,9 @@ export const Steam = ({ db, fetcher, apiKey }: Params) => {
         steamApi: apiCall,
         storeApi: storeCall,
 
-        async getAppDetails(query: URLSearchParams) {
+        async getAppDetails(appids: string) {
             const payload: Payload = { data: [], error: '' };
-            const appids = query.get('appids');
-            let app;
-
-            if (!appids) {
-                payload.error = 'No appids provided';
-                return payload;
-            }
+            let app: App | null;
 
             try {
                 const [row] = await db.getApps(Number(appids));
@@ -160,7 +166,7 @@ export const Steam = ({ db, fetcher, apiKey }: Params) => {
                 if (row) app = row;
                 else app = await getSteamApp(appids);
 
-                payload.data.push(app);
+                if (app) payload.data.push(app);
             } catch (e) {
                 console.error('getAppDetails', e);
                 payload.error = 'getAppDetails failed.';
@@ -169,14 +175,8 @@ export const Steam = ({ db, fetcher, apiKey }: Params) => {
             return payload;
         },
 
-        async getSteamId(query: URLSearchParams) {
+        async getSteamId(identifier: string) {
             const payload: Payload = { data: [], error: '' };
-            const identifier = query.get('identifier');
-
-            if (!identifier) {
-                payload.error = 'No identifier provided';
-                return payload;
-            }
 
             try {
                 if (!Number.isFinite(identifier)) {
@@ -186,7 +186,7 @@ export const Steam = ({ db, fetcher, apiKey }: Params) => {
                     payload.data.push(identifier);
                 }
             } catch (e) {
-                console.error(e);
+                console.error('getSteamId', e);
                 payload.error = 'getSteamId failed.';
             }
 
@@ -206,36 +206,34 @@ export const Steam = ({ db, fetcher, apiKey }: Params) => {
 
                 payload.data.push(categoryMap);
             } catch (e) {
-                console.error(e);
+                console.error('getCategories', e);
                 payload.error = 'getCategories failed.';
             }
 
             return payload;
         },
 
-        async getProfiles(query: URLSearchParams) {
+        async getProfiles(steamid: string) {
             const payload: Payload = { data: [], error: '' };
-
-            let steamid = query.get('steamid') || '';
 
             try {
                 if (!Number.isFinite(steamid)) {
                     steamid = await resolveVanityURL(steamid);
                 }
 
-                query = new URLSearchParams({ steamid, relationship: 'friend' });
+                const query = new URLSearchParams({ steamid, relationship: 'friend' });
 
                 // retrieve friends list
                 const { data, error } = await apiCall(query, 'ISteamUser', 'GetFriendList', 'v0001');
                 if (error) throw error;
 
                 // @ts-ignore: external api
-                const { friendslist: { friends } } = data[0];
+                const friends: Array<{ steamid: number }> = data[0].friendslist.friends;
                 
                 // collect all steamids
                 const steamids = [
                     steamid,
-                    ...friends.map((f: { steamid: number }) => f.steamid)
+                    ...friends.map((f) => f.steamid)
                 ];
 
                 const steamidsStr = steamids.join(',');
@@ -243,7 +241,6 @@ export const Steam = ({ db, fetcher, apiKey }: Params) => {
                 // retrieve player summaries
                 const summaries = await getPlayerSummaries(steamidsStr);
 
-                // @ts-ignore: external api type
                 const profiles = summaries.map(s => ({
                     steamid: s.steamid,
                     personaname: s.personaname,
@@ -254,12 +251,10 @@ export const Steam = ({ db, fetcher, apiKey }: Params) => {
                         : false
                 }));
 
-                const idx = profiles.findIndex((p: { steamid: string }) => p.steamid == steamid);
+                const idx = profiles.findIndex((p) => p.steamid == steamid);
                 const [user] = profiles.splice(idx, 1);
 
-                profiles.sort((a: { personaname: string }, b: { personaname: string }) =>
-                    a.personaname > b.personaname
-                );
+                profiles.sort((a, b) => a.personaname.localeCompare(b.personaname));
 
                 payload.data.push({
                     idString: steamidsStr,
@@ -267,20 +262,18 @@ export const Steam = ({ db, fetcher, apiKey }: Params) => {
                     friends: profiles
                 });
             } catch (e) {
-                console.error(e);
-                payload.error = e.message || e;
+                console.error('getProfiles', e);
+                payload.error = 'getProfiles failed.';
             }
 
             return payload;
         },
 
-        async getCommonApps(query: URLSearchParams) {
+        async getCommonApps(steamidsCSV: string) {
             const payload: Payload = { data: [], error: '' };
-            const steamidsStr = query.get('steamids') || '';
-            const rawSteamids = steamidsStr.split(',');
+            const rawSteamids = steamidsCSV.split(',');
 
             try {
-                // const steamids = rawSteamids;
                 const steamids = [];
 
                 // allow vanity steamids
@@ -293,54 +286,57 @@ export const Steam = ({ db, fetcher, apiKey }: Params) => {
                 }
 
                 const results = await Promise.all(steamids.map((steamid: string) => {
-                    query = new URLSearchParams({
+                    const gameQuery = new URLSearchParams({
                         steamid,
                         include_appinfo: '1',
                         include_played_free_games: '1'
                     });
 
-                    return apiCall(query,
+                    return apiCall(gameQuery,
                         'IPlayerService',
                         'GetOwnedGames',
                         'v0001'
                     );
                 }));
 
-                const libs = [];
+                const libs: number[][] = [];
                 for (const result of results) {
                     // @ts-ignore: external api data
-                    const { games } = result.data[0].response;
-                    const appids = games.map((game: { appid: string }) => game.appid);
-                    libs.push(appids);
+                    const games: Array<{ appid: number }> | undefined = result.data[0].response.games;
+
+                    if (games) {
+                        const appids: number[] = games.map((game) => game.appid);
+                        libs.push(appids);
+                    }
                 }
 
-                const first = libs.pop();
+                const first = libs.pop() || [];
                 const commonAppIds = libs.reduce((common, lib) => {
-                    return common.filter((id: string) => lib.includes(id));
-                }, first)
+                    return common.filter((id) => lib.includes(id));
+                }, first);
 
                 // check db for stored apps
                 const appsFromDb = await db.getApps(commonAppIds);
-                const idsFromDb = appsFromDb.map((app) => app.steam_appid);
-                const appsToFetch = commonAppIds.filter((id: string) => !idsFromDb.includes(id));
+                const idsFromDb = appsFromDb.map((app) => Number(app.steam_appid));
+                const appsToFetch = commonAppIds.filter((id) => !idsFromDb.includes(id));
 
                 // fetch apps that are not in the db
-                let fetchedApps = [];
+                let fetchedApps: App[] = [];
                 if (appsToFetch.length > 0) {
-                    fetchedApps = await Promise.all(appsToFetch.map((id: string) => {
-                        return getSteamApp(id);
+                    const temp = await Promise.all(appsToFetch.map((id) => {
+                        return getSteamApp(id.toString());
                     }));
 
                     // filter out null/undefined results
-                    fetchedApps = fetchedApps.filter(a => a);
+                    fetchedApps = temp.filter(a => a) as App[];
                 }
 
                 const commonApps = [ ...appsFromDb, ...fetchedApps ];
                 commonApps.sort((a, b) => a.name.localeCompare(b.name));
                 payload.data.push(commonApps);
             } catch (e) {
-                console.error(e);
-                payload.error = 'getProfiles failed.';
+                console.error('getCommonApps', e);
+                payload.error = 'getCommonApps failed.';
             }
 
             return payload;

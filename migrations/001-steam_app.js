@@ -5,7 +5,7 @@ try {
         create table if not exists steam_app (
             id serial primary key,
             steam_appid bigint unique not null,
-            name text not null,
+            name text,
             categories int[],
             header_image text,
             is_free boolean,

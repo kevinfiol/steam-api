@@ -70,7 +70,8 @@ const routeMap = {
         methods: ['GET'],
         pattern: createPattern(ROUTES.GET_APP_DETAILS),
         action: (query: URLSearchParams) => {
-            return steam.getAppDetails(query);
+            const appids = query.get('appids') || '';
+            return steam.getAppDetails(appids);
         }
     },
 
@@ -86,7 +87,8 @@ const routeMap = {
         methods: ['GET'],
         pattern: createPattern(ROUTES.GET_PROFILES),
         action: (query: URLSearchParams) => {
-            return steam.getProfiles(query);
+            const steamid = query.get('steamid') || '';
+            return steam.getProfiles(steamid);
         },
     },
 
@@ -94,7 +96,8 @@ const routeMap = {
         methods: ['GET'],
         pattern: createPattern(ROUTES.GET_COMMON_APPS),
         action: (query: URLSearchParams) => {
-            return steam.getCommonApps(query);
+            const steamidsCSV = query.get('steamids') || '';
+            return steam.getCommonApps(steamidsCSV);
         },
     },
 
@@ -102,7 +105,8 @@ const routeMap = {
         methods: ['GET'],
         pattern: createPattern(ROUTES.GET_STEAM_ID),
         action: (query: URLSearchParams) => {
-            return steam.getSteamId(query);
+            const identifier = query.get('identifier') || '';
+            return steam.getSteamId(identifier);
         }
     },
 };

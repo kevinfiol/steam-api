@@ -15,6 +15,14 @@ type Category = {
     description: string;
 };
 
+type PlayerSummary = {
+    steamid: string;
+    personaname: string;
+    profileurl: string;
+    avatar: string;
+    communityvisibilitystate: number;
+};
+
 type Database = {
     getApps: (steam_appids: number | number[]) => Promise<App[]>;
     getCategories: () => Promise<Category[]>;

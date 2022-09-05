@@ -7,6 +7,7 @@ const PG_HOST = Deno.env.get('PG_HOST') || ''
 const PG_PORT = Deno.env.get('PG_PORT') || ''
 
 export const sql = postgres({
+    keep_alive: false,
     host: PG_HOST,
     port: PG_PORT,
     database: PG_DB,
