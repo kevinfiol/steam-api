@@ -333,7 +333,11 @@ export const Steam = ({ db, fetcher, apiKey }: Params) => {
 
                 const commonApps = [ ...appsFromDb, ...fetchedApps ];
                 commonApps.sort((a, b) => a.name.localeCompare(b.name));
-                payload.data.push(commonApps);
+
+                payload.data.push({
+                    count: commonApps.length,
+                    apps: commonApps
+                });
             } catch (e) {
                 console.error('getCommonApps', e);
                 payload.error = 'getCommonApps failed.';
