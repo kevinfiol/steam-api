@@ -33,8 +33,7 @@ const steam = Steam({ db, fetcher, apiKey: STEAM_API_KEY });
 const createPattern = (pathname: string) => {
     return new URLPattern({
         pathname,
-        protocol: 'http{s}?',
-        hostname: HOSTNAME
+        protocol: 'http{s}?'
     });
 };
 
@@ -114,8 +113,7 @@ const routeMap = {
 // start server
 serve(async (req) => {
     const url = new URL(req.url);
-    const response = await runRoute(req.method, url);
-    return response;
+    return await runRoute(req.method, url);
 }, {
     port: Number(SERVER_PORT)
 });
