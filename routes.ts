@@ -8,6 +8,7 @@ export const ROUTES = {
     GET_APP_DETAILS: '/getAppDetails',
     GET_CATEGORIES: '/getCategories',
     GET_PROFILES: '/getProfiles',
+    GET_FRIENDS: '/getFriends',
     GET_COMMON_APPS: '/getCommonApps',
     GET_STEAM_ID: '/getSteamId',
 };

@@ -6,13 +6,13 @@ import { ROUTES } from './routes.ts';
 
 // load .env variables
 const SERVER_PORT = Deno.env.get('SERVER_PORT') || 80;
-const HOSTNAME = Deno.env.get('HOSTNAME') || 'localhost';
 const STEAM_API_KEY = Deno.env.get('STEAM_API_KEY') || '';
 const PG_USERNAME = Deno.env.get('PG_USERNAME') || '';
 const PG_PASSWORD = Deno.env.get('PG_PASSWORD') || '';
 const PG_DB = Deno.env.get('PG_DB') || '';
 const PG_HOST = Deno.env.get('PG_HOST') || '';
 const PG_PORT = Deno.env.get('PG_PORT') || '';
+const ALLOW_ORIGIN = Deno.env.get('ALLOW_ORIGIN') || '*';
 
 // create db instance
 const db = Postgres({
@@ -39,7 +39,7 @@ const createPattern = (pathname: string) => {
 
 const routeMap = {
     INDEX: {
-        methods: ['GET'],
+        methods: ['GET', 'OPTIONS'],
         pattern: createPattern(ROUTES.INDEX),
         action: (_query: URLSearchParams, _params = {}) => ({
             data: 'OK',
@@ -48,7 +48,7 @@ const routeMap = {
     },
 
     STEAM_API: {
-        methods: ['GET'],
+        methods: ['GET', 'OPTIONS'],
         pattern: createPattern(ROUTES.STEAM_API),
         action: (query: URLSearchParams, params: Record<string, string>) => {
             const { iface, command, version } = params;
@@ -57,7 +57,7 @@ const routeMap = {
     },
 
     STORE_API: {
-        methods: ['GET'],
+        methods: ['GET', 'OPTIONS'],
         pattern: createPattern(ROUTES.STORE_API),
         action: (query: URLSearchParams, params: Record<string, string>) => {
             const { command } = params;
@@ -66,7 +66,7 @@ const routeMap = {
     },
 
     GET_APP_DETAILS: {
-        methods: ['GET'],
+        methods: ['GET', 'OPTIONS'],
         pattern: createPattern(ROUTES.GET_APP_DETAILS),
         action: (query: URLSearchParams) => {
             const appids = query.get('appids') || '';
@@ -75,7 +75,7 @@ const routeMap = {
     },
 
     GET_CATEGORIES: {
-        methods: ['GET'],
+        methods: ['GET', 'OPTIONS'],
         pattern: createPattern(ROUTES.GET_CATEGORIES),
         action: () => {
             return steam.getCategories();
@@ -83,16 +83,25 @@ const routeMap = {
     },
 
     GET_PROFILES: {
-        methods: ['GET'],
+        methods: ['GET', 'OPTIONS'],
         pattern: createPattern(ROUTES.GET_PROFILES),
         action: (query: URLSearchParams) => {
+            const steamidsCSV = query.get('steamids') || '';
+            return steam.getProfiles(steamidsCSV);
+        }
+    },
+
+    GET_FRIENDS: {
+        methods: ['GET', 'OPTIONS'],
+        pattern: createPattern(ROUTES.GET_FRIENDS),
+        action: (query: URLSearchParams) => {
             const steamid = query.get('steamid') || '';
-            return steam.getProfiles(steamid);
+            return steam.getFriends(steamid);
         },
     },
 
     GET_COMMON_APPS: {
-        methods: ['GET'],
+        methods: ['GET', 'OPTIONS'],
         pattern: createPattern(ROUTES.GET_COMMON_APPS),
         action: (query: URLSearchParams) => {
             const steamidsCSV = query.get('steamids') || '';
@@ -101,7 +110,7 @@ const routeMap = {
     },
 
     GET_STEAM_ID: {
-        methods: ['GET'],
+        methods: ['GET', 'OPTIONS'],
         pattern: createPattern(ROUTES.GET_STEAM_ID),
         action: (query: URLSearchParams) => {
             const identifier = query.get('identifier') || '';
@@ -143,7 +152,12 @@ async function runRoute(method: string, url: URL): Promise<Response> {
 
             return new Response(JSON.stringify(payload), {
                 status: payload.error ? 500 : 200,
-                headers: { 'content-type': 'application/json' }
+                headers: {
+                    'content-type': 'application/json',
+                    'access-control-allow-origin': ALLOW_ORIGIN,
+                    'access-control-allow-methods': route.methods.join(', '),
+                    'access-control-allow-headers': 'Authorization, Origin, Accept, Content-Type, X-Requested-With'
+                }
             });
         }
     }

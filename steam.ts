@@ -152,6 +152,22 @@ export const Steam = ({ db, fetcher, apiKey }: Params) => {
         return summaries;
     };
 
+    // @ts-ignore: external api record
+    const mapSummaryToProfile = (s) => {
+        return {
+            steamid: s.steamid,
+            personaname: s.personaname,
+            profileurl: s.profileurl,
+            avatar: s.avatar,
+            // this turns `https://steamcommunity.com/profiles/76561198027592111/` to `76561198027592111`,
+            // and `https://steamcommunity.com/id/kebsteam` to `kebsteam`
+            identifier: s.profileurl.split('/').splice(4).join(''),
+            visible: s.communityvisibilitystate == 3
+                ? true
+                : false
+        };
+    };
+
     return {
         steamApi: apiCall,
         storeApi: storeCall,
@@ -213,7 +229,7 @@ export const Steam = ({ db, fetcher, apiKey }: Params) => {
             return payload;
         },
 
-        async getProfiles(steamid: string) {
+        async getFriends(steamid: string) {
             const payload: Payload = { data: [], error: '' };
 
             try {
@@ -236,20 +252,10 @@ export const Steam = ({ db, fetcher, apiKey }: Params) => {
                     ...friends.map((f) => f.steamid)
                 ];
 
-                const steamidsStr = steamids.join(',');
-
                 // retrieve player summaries
+                const steamidsStr = steamids.join(',');
                 const summaries = await getPlayerSummaries(steamidsStr);
-
-                const profiles = summaries.map(s => ({
-                    steamid: s.steamid,
-                    personaname: s.personaname,
-                    profileurl: s.profileurl,
-                    avatar: s.avatar,
-                    visible: s.communityvisibilitystate == 3
-                        ? true
-                        : false
-                }));
+                const profiles = summaries.map(mapSummaryToProfile);
 
                 const idx = profiles.findIndex((p) => p.steamid == steamid);
                 const [user] = profiles.splice(idx, 1);
@@ -261,6 +267,36 @@ export const Steam = ({ db, fetcher, apiKey }: Params) => {
                     user,
                     friends: profiles
                 });
+            } catch (e) {
+                console.error('getFriends', e);
+                payload.error = 'getFriends failed.';
+            }
+
+            return payload;
+        },
+
+        async getProfiles (steamidsCSV: string) {
+            const payload: Payload = { data: [], error: '' };
+            const rawSteamids = steamidsCSV.split(',');
+
+            try {
+                const steamids = [];
+
+                // allow vanity steamids
+                for (let steamid of rawSteamids) {
+                    if (!Number.isFinite(Number(steamid))) {
+                        steamid = await resolveVanityURL(steamid);
+                    }
+
+                    steamids.push(steamid);
+                }
+
+                // retrieve player summaries
+                const steamidsStr = steamids.join(',');
+                const summaries = await getPlayerSummaries(steamidsStr);
+                const profiles = summaries.map(mapSummaryToProfile);
+
+                payload.data.push({ profiles });
             } catch (e) {
                 console.error('getProfiles', e);
                 payload.error = 'getProfiles failed.';
@@ -334,9 +370,19 @@ export const Steam = ({ db, fetcher, apiKey }: Params) => {
                 const commonApps = [ ...appsFromDb, ...fetchedApps ];
                 commonApps.sort((a, b) => a.name.localeCompare(b.name));
 
+                // TO-DO: should be in the DB
+                // This adds a category map to apps as well
+                const apps = commonApps.map(app => ({
+                    ...app,
+                    categoryMap: app.categories.reduce((a: Record<string, boolean>, c) => {
+                        a[c] = true;
+                        return a;
+                    }, {})
+                }));
+
                 payload.data.push({
                     count: commonApps.length,
-                    apps: commonApps
+                    apps
                 });
             } catch (e) {
                 console.error('getCommonApps', e);
