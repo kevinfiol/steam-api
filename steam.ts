@@ -339,11 +339,10 @@ export const Steam = ({ db, fetcher, apiKey }: Params) => {
                 for (const result of results) {
                     // @ts-ignore: external api data
                     const games: Array<{ appid: number }> | undefined = result.data[0].response.games;
+                    if (!games) throw 'Could not retrieve profiles for user.';
 
-                    if (games) {
-                        const appids: number[] = games.map((game) => game.appid);
-                        libs.push(appids);
-                    }
+                    const appids: number[] = games.map((game) => game.appid);
+                    libs.push(appids);
                 }
 
                 const first = libs.pop() || [];
