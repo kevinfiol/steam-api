@@ -9,6 +9,8 @@ type Params = {
     apiKey: string;
 };
 
+const toNumber = (s: string) => parseInt(s, 10);
+
 export const Steam = ({ db, fetcher, apiKey }: Params) => {
     const apiCall = async (query: URLSearchParams | string, iface: string, command: string, version: string) => {
         const payload: Payload = { data: [], error: '' };
@@ -195,7 +197,7 @@ export const Steam = ({ db, fetcher, apiKey }: Params) => {
             const payload: Payload = { data: [], error: '' };
 
             try {
-                if (!Number.isFinite(identifier)) {
+                if (!Number.isFinite(toNumber(identifier))) {
                     const steamId = await resolveVanityURL(identifier);
                     payload.data.push(steamId);
                 } else {
@@ -233,7 +235,7 @@ export const Steam = ({ db, fetcher, apiKey }: Params) => {
             const payload: Payload = { data: [], error: '' };
 
             try {
-                if (!Number.isFinite(steamid)) {
+                if (!Number.isFinite(toNumber(steamid))) {
                     steamid = await resolveVanityURL(steamid);
                 }
 
@@ -284,7 +286,7 @@ export const Steam = ({ db, fetcher, apiKey }: Params) => {
 
                 // allow vanity steamids
                 for (let steamid of rawSteamids) {
-                    if (!Number.isFinite(Number(steamid))) {
+                    if (!Number.isFinite(toNumber(steamid))) {
                         steamid = await resolveVanityURL(steamid);
                     }
 
@@ -314,7 +316,7 @@ export const Steam = ({ db, fetcher, apiKey }: Params) => {
 
                 // allow vanity steamids
                 for (let steamid of rawSteamids) {
-                    if (!Number.isFinite(Number(steamid))) {
+                    if (!Number.isFinite(toNumber(steamid))) {
                         steamid = await resolveVanityURL(steamid);
                     }
 
