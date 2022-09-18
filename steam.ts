@@ -2,6 +2,7 @@
 
 const API_URL = 'http://api.steampowered.com';
 const STORE_URL = 'http://store.steampowered.com/api';
+const MAX_APPS_CACHE_AGE_SECONDS = 43200 ; // 12 hrs
 
 type Params = {
     db: Database;
@@ -310,9 +311,11 @@ export const Steam = ({ db, fetcher, apiKey }: Params) => {
         async getCommonApps(steamidsCSV: string) {
             const payload: Payload = { data: [], error: '' };
             const rawSteamids = steamidsCSV.split(',');
+            let shouldUpdateDB = true;
+            let apps = [];
 
             try {
-                const steamids = [];
+                const steamids: string[] = [];
 
                 // allow vanity steamids
                 for (let steamid of rawSteamids) {
@@ -323,66 +326,87 @@ export const Steam = ({ db, fetcher, apiKey }: Params) => {
                     steamids.push(steamid);
                 }
 
-                const results = await Promise.all(steamids.map((steamid: string) => {
-                    const gameQuery = new URLSearchParams({
-                        steamid,
-                        include_appinfo: '1',
-                        include_played_free_games: '1'
-                    });
+                // sort to create idString to check db if common apps already exists
+                steamids.sort((a, b) => a.localeCompare(b));
+                const idString = steamids.join(',');
 
-                    return apiCall(gameQuery,
-                        'IPlayerService',
-                        'GetOwnedGames',
-                        'v0001'
-                    );
-                }));
+                // check db first for cache
+                const cache = await db.getCommonApps(idString);
 
-                const libs: number[][] = [];
-                for (const result of results) {
-                    // @ts-ignore: external api data
-                    const games: Array<{ appid: number }> | undefined = result.data[0].response.games;
-                    if (!games) throw 'Could not retrieve profiles for user.';
+                if (cache.length) {
+                    const { data, age } = cache[0];
 
-                    const appids: number[] = games.map((game) => game.appid);
-                    libs.push(appids);
+                    if (age < MAX_APPS_CACHE_AGE_SECONDS) {
+                        shouldUpdateDB = false;
+                        apps = JSON.parse(data);
+                    }
                 }
 
-                const first = libs.pop() || [];
-                const commonAppIds = libs.reduce((common, lib) => {
-                    return common.filter((id) => lib.includes(id));
-                }, first);
+                if (shouldUpdateDB) {
+                    const results = await Promise.all(steamids.map((steamid: string) => {
+                        const gameQuery = new URLSearchParams({
+                            steamid,
+                            include_appinfo: '1',
+                            include_played_free_games: '1'
+                        });
 
-                // check db for stored apps
-                const appsFromDb = await db.getApps(commonAppIds);
-                const idsFromDb = appsFromDb.map((app) => Number(app.steam_appid));
-                const appsToFetch = commonAppIds.filter((id) => !idsFromDb.includes(id));
-
-                // fetch apps that are not in the db
-                let fetchedApps: App[] = [];
-                if (appsToFetch.length > 0) {
-                    const temp = await Promise.all(appsToFetch.map((id) => {
-                        return getSteamApp(id.toString());
+                        return apiCall(gameQuery,
+                            'IPlayerService',
+                            'GetOwnedGames',
+                            'v0001'
+                        );
                     }));
 
-                    // filter out null/undefined results
-                    fetchedApps = temp.filter(a => a) as App[];
+                    const libs: number[][] = [];
+                    for (const result of results) {
+                        // @ts-ignore: external api data
+                        const games: Array<{ appid: number }> | undefined = result.data[0].response.games;
+                        if (!games) throw 'Could not retrieve profiles for user.';
+
+                        const appids: number[] = games.map((game) => game.appid);
+                        libs.push(appids);
+                    }
+
+                    const first = libs.pop() || [];
+                    const commonAppIds = libs.reduce((common, lib) => {
+                        return common.filter((id) => lib.includes(id));
+                    }, first);
+
+                    // check db for stored apps
+                    const appsFromDb = await db.getApps(commonAppIds);
+                    const idsFromDb = appsFromDb.map((app) => Number(app.steam_appid));
+                    const appsToFetch = commonAppIds.filter((id) => !idsFromDb.includes(id));
+
+                    // fetch apps that are not in the db
+                    let fetchedApps: App[] = [];
+                    if (appsToFetch.length > 0) {
+                        const temp = await Promise.all(appsToFetch.map((id) => {
+                            return getSteamApp(id.toString());
+                        }));
+
+                        // filter out null/undefined results
+                        fetchedApps = temp.filter(a => a) as App[];
+                    }
+
+                    const commonApps = [ ...appsFromDb, ...fetchedApps ];
+                    commonApps.sort((a, b) => a.name.localeCompare(b.name));
+
+                    // TO-DO: should be in the DB
+                    // This adds a category map to apps as well
+                    apps = commonApps.map(app => ({
+                        ...app,
+                        categoryMap: app.categories.reduce((a: Record<string, boolean>, c) => {
+                            a[c] = true;
+                            return a;
+                        }, {})
+                    }));
+
+                    // cache in db
+                    await db.insertCommonApps(idString, apps);
                 }
 
-                const commonApps = [ ...appsFromDb, ...fetchedApps ];
-                commonApps.sort((a, b) => a.name.localeCompare(b.name));
-
-                // TO-DO: should be in the DB
-                // This adds a category map to apps as well
-                const apps = commonApps.map(app => ({
-                    ...app,
-                    categoryMap: app.categories.reduce((a: Record<string, boolean>, c) => {
-                        a[c] = true;
-                        return a;
-                    }, {})
-                }));
-
                 payload.data.push({
-                    count: commonApps.length,
+                    count: apps.length,
                     apps
                 });
             } catch (e) {

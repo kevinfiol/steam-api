@@ -57,6 +57,29 @@ export const Postgres = (config = {}): Database => {
 
                 returning *
             `;
+        },
+
+        insertCommonApps(steamids: string, apps: App[]) {
+            return sql`
+                insert into steam_common (steamids, data, updated_at)
+                values (
+                    ${steamids},
+                    ${JSON.stringify(apps)},
+                    now()
+                )
+                on conflict (steamids)
+                do update set (data, updated_at) = (excluded.data, excluded.updated_at)
+
+                returning *
+            `;
+        },
+
+        getCommonApps(steamids: string) {
+            return sql`
+                select data, EXTRACT(EPOCH FROM (now() - updated_at)) as age
+                from steam_common
+                where steamids = ${steamids}
+            `;
         }
     };
 };

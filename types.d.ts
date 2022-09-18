@@ -28,6 +28,8 @@ type Database = {
     getCategories: () => Promise<Category[]>;
     insertApp: (app: Partial<App>) => Promise<App[]>;
     insertCategories: (categories: Category[]) => Promise<Category[]>;
+    getCommonApps: (steamids: string) => Promise<Array<{ data: string, age: number }>>;
+    insertCommonApps: (steamids: string, apps: App[]) => Promise<Array<{ id: number, steamids: string, data: string, updated_at: Date }>>;
 };
 
 type Payload = {
