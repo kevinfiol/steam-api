@@ -1,5 +1,5 @@
 import { serve } from './deps.ts';
-import { fetcher } from './utils.ts';
+import { fetcher, hasher } from './utils.ts';
 import { Steam } from './steam.ts';
 import { Postgres } from './postgres.ts';
 import { ROUTES } from './routes.ts';
@@ -27,7 +27,7 @@ const db = Postgres({
 });
 
 // initialize steam service
-const steam = Steam({ db, fetcher, apiKey: STEAM_API_KEY });
+const steam = Steam({ db, fetcher, hasher, apiKey: STEAM_API_KEY });
 
 // url pattern helper
 const createPattern = (pathname: string) => {

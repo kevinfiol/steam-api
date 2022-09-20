@@ -16,3 +16,15 @@ export async function fetcher(url: string, opts: RequestInit = {}) {
 
     return payload;
 }
+
+export async function hasher(text: string) {
+    // https://developer.mozilla.org/en-US/docs/Web/API/SubtleCrypto/digest
+    const uInt8 = new TextEncoder().encode(text);
+    const hashBuffer = await crypto.subtle.digest('SHA-256', uInt8);
+
+    // convert buffer to byte array
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    // convert bytes to hex string
+    const hashHex = hashArray.map((b) => b.toString(16).padStart(2, '0')).join('');
+    return hashHex;
+}

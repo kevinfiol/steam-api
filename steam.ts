@@ -2,17 +2,18 @@
 
 const API_URL = 'http://api.steampowered.com';
 const STORE_URL = 'http://store.steampowered.com/api';
-const MAX_APPS_CACHE_AGE_SECONDS = 43200 ; // 12 hrs
+const MAX_APPS_CACHE_AGE_SECONDS = 86400; // 24 hrs
 
 type Params = {
     db: Database;
     fetcher: Fetcher;
+    hasher: (ids: string) => string
     apiKey: string;
 };
 
 const toNumber = (s: string) => parseInt(s, 10);
 
-export const Steam = ({ db, fetcher, apiKey }: Params) => {
+export const Steam = ({ db, fetcher, hasher, apiKey }: Params) => {
     const apiCall = async (query: URLSearchParams | string, iface: string, command: string, version: string) => {
         const payload: Payload = { data: [], error: '' };
 
@@ -329,9 +330,10 @@ export const Steam = ({ db, fetcher, apiKey }: Params) => {
                 // sort to create idString to check db if common apps already exists
                 steamids.sort((a, b) => a.localeCompare(b));
                 const idString = steamids.join(',');
+                const hash = await hasher(idString);
 
                 // check db first for cache
-                const cache = await db.getCommonApps(idString);
+                const cache = await db.getCommonApps(hash);
 
                 if (cache.length) {
                     const { data, age } = cache[0];
@@ -402,7 +404,7 @@ export const Steam = ({ db, fetcher, apiKey }: Params) => {
                     }));
 
                     // cache in db
-                    await db.insertCommonApps(idString, apps);
+                    await db.insertCommonApps(hash, apps);
                 }
 
                 payload.data.push({
