@@ -11,7 +11,7 @@ type App = {
 
 type Category = {
     id?: number;
-    category_id: string;
+    category_id: number;
     description: string;
 };
 

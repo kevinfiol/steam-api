@@ -7,7 +7,7 @@ const MAX_APPS_CACHE_AGE_SECONDS = 86400; // 24 hrs
 type Params = {
     db: Database;
     fetcher: Fetcher;
-    hasher: (ids: string) => string
+    hasher: (ids: string) => Promise<string>
     apiKey: string;
 };
 
@@ -96,7 +96,7 @@ export const Steam = ({ db, fetcher, hasher, apiKey }: Params) => {
 
             // save categories to db
             const dbCategories = categories.map(c =>
-                ({ ...c, category_id: c.id.toString() })
+                ({ ...c, category_id: c.id })
             );
 
             await db.insertCategories(dbCategories);
@@ -217,14 +217,9 @@ export const Steam = ({ db, fetcher, hasher, apiKey }: Params) => {
             const payload: Payload = { data: [], error: '' };
 
             try {
-                const rows = await db.getCategories();
-
-                const categoryMap = rows.reduce((a, c) => {
-                    a[c.category_id] = c.description;
-                    return a;
-                }, {} as { [key: string]: string });
-
-                payload.data.push(categoryMap);
+                const categories = await db.getCategories();
+                const entries = categories.map(c => [c.category_id, c.description]);
+                payload.data.push(entries);
             } catch (e) {
                 console.error('getCategories', e);
                 payload.error = 'getCategories failed.';
@@ -316,6 +311,10 @@ export const Steam = ({ db, fetcher, hasher, apiKey }: Params) => {
             let apps = [];
 
             try {
+                if (rawSteamids.length < 2) {
+                    throw Error('2 profiles required to compare libraries.');
+                }
+
                 const steamids: string[] = [];
 
                 // allow vanity steamids
