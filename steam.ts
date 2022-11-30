@@ -274,7 +274,7 @@ export const Steam = ({ db, fetcher, hasher, apiKey }: Params) => {
             return payload;
         },
 
-        async getProfiles (steamidsCSV: string) {
+        async getProfiles(steamidsCSV: string) {
             const payload: Payload = { data: [], error: '' };
             const rawSteamids = steamidsCSV.split(',');
 
