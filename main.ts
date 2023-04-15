@@ -16,14 +16,14 @@ const ALLOW_ORIGIN = Deno.env.get('ALLOW_ORIGIN') || '*';
 
 // create db instance
 const db = Postgres({
-    // need `keep_alive` while Deno.Conn#setKeepAlive is unstable
-    // todo: remove this in the future
-    keep_alive: false,
-    host: PG_HOST,
-    port: PG_PORT,
-    database: PG_DB,
-    username: PG_USERNAME,
-    password: PG_PASSWORD
+  // need `keep_alive` while Deno.Conn#setKeepAlive is unstable
+  // todo: remove this in the future
+  keep_alive: false,
+  host: PG_HOST,
+  port: PG_PORT,
+  database: PG_DB,
+  username: PG_USERNAME,
+  password: PG_PASSWORD
 });
 
 // initialize steam service
@@ -31,139 +31,139 @@ const steam = Steam({ db, fetcher, hasher, apiKey: STEAM_API_KEY });
 
 // url pattern helper
 const createPattern = (pathname: string) => {
-    return new URLPattern({
-        pathname,
-        protocol: 'http{s}?'
-    });
+  return new URLPattern({
+    pathname,
+    protocol: 'http{s}?'
+  });
 };
 
 const routeMap = {
-    INDEX: {
-        methods: ['GET', 'OPTIONS'],
-        pattern: createPattern(ROUTES.INDEX),
-        action: (_query: URLSearchParams, _params = {}) => ({
-            data: 'OK',
-            error: ''
-        }),
-    },
+  INDEX: {
+    methods: ['GET', 'OPTIONS'],
+    pattern: createPattern(ROUTES.INDEX),
+    action: (_query: URLSearchParams, _params = {}) => ({
+      data: 'OK',
+      error: ''
+    }),
+  },
 
-    STEAM_API: {
-        methods: ['GET', 'OPTIONS'],
-        pattern: createPattern(ROUTES.STEAM_API),
-        action: (query: URLSearchParams, params: Record<string, string>) => {
-            const { iface, command, version } = params;
-            return steam.steamApi(query, iface, command, version);
-        }
-    },
+  STEAM_API: {
+    methods: ['GET', 'OPTIONS'],
+    pattern: createPattern(ROUTES.STEAM_API),
+    action: (query: URLSearchParams, params: Record<string, string>) => {
+      const { iface, command, version } = params;
+      return steam.steamApi(query, iface, command, version);
+    }
+  },
 
-    STORE_API: {
-        methods: ['GET', 'OPTIONS'],
-        pattern: createPattern(ROUTES.STORE_API),
-        action: (query: URLSearchParams, params: Record<string, string>) => {
-            const { command } = params;
-            return steam.storeApi(query, command);
-        }
-    },
+  STORE_API: {
+    methods: ['GET', 'OPTIONS'],
+    pattern: createPattern(ROUTES.STORE_API),
+    action: (query: URLSearchParams, params: Record<string, string>) => {
+      const { command } = params;
+      return steam.storeApi(query, command);
+    }
+  },
 
-    GET_APP_DETAILS: {
-        methods: ['GET', 'OPTIONS'],
-        pattern: createPattern(ROUTES.GET_APP_DETAILS),
-        action: (query: URLSearchParams) => {
-            const appids = query.get('appids') || '';
-            return steam.getAppDetails(appids);
-        }
-    },
+  GET_APP_DETAILS: {
+    methods: ['GET', 'OPTIONS'],
+    pattern: createPattern(ROUTES.GET_APP_DETAILS),
+    action: (query: URLSearchParams) => {
+      const appids = query.get('appids') || '';
+      return steam.getAppDetails(appids);
+    }
+  },
 
-    GET_CATEGORIES: {
-        methods: ['GET', 'OPTIONS'],
-        pattern: createPattern(ROUTES.GET_CATEGORIES),
-        action: () => {
-            return steam.getCategories();
-        },
+  GET_CATEGORIES: {
+    methods: ['GET', 'OPTIONS'],
+    pattern: createPattern(ROUTES.GET_CATEGORIES),
+    action: () => {
+      return steam.getCategories();
     },
+  },
 
-    GET_PROFILES: {
-        methods: ['GET', 'OPTIONS'],
-        pattern: createPattern(ROUTES.GET_PROFILES),
-        action: (query: URLSearchParams) => {
-            const steamidsCSV = query.get('steamids') || '';
-            return steam.getProfiles(steamidsCSV);
-        }
-    },
+  GET_PROFILES: {
+    methods: ['GET', 'OPTIONS'],
+    pattern: createPattern(ROUTES.GET_PROFILES),
+    action: (query: URLSearchParams) => {
+      const steamidsCSV = query.get('steamids') || '';
+      return steam.getProfiles(steamidsCSV);
+    }
+  },
 
-    GET_FRIENDS: {
-        methods: ['GET', 'OPTIONS'],
-        pattern: createPattern(ROUTES.GET_FRIENDS),
-        action: (query: URLSearchParams) => {
-            const steamid = query.get('steamid') || '';
-            return steam.getFriends(steamid);
-        },
+  GET_FRIENDS: {
+    methods: ['GET', 'OPTIONS'],
+    pattern: createPattern(ROUTES.GET_FRIENDS),
+    action: (query: URLSearchParams) => {
+      const steamid = query.get('steamid') || '';
+      return steam.getFriends(steamid);
     },
+  },
 
-    GET_COMMON_APPS: {
-        methods: ['GET', 'OPTIONS'],
-        pattern: createPattern(ROUTES.GET_COMMON_APPS),
-        action: (query: URLSearchParams) => {
-            const steamidsCSV = query.get('steamids') || '';
-            return steam.getCommonApps(steamidsCSV);
-        },
+  GET_COMMON_APPS: {
+    methods: ['GET', 'OPTIONS'],
+    pattern: createPattern(ROUTES.GET_COMMON_APPS),
+    action: (query: URLSearchParams) => {
+      const steamidsCSV = query.get('steamids') || '';
+      return steam.getCommonApps(steamidsCSV);
     },
+  },
 
-    GET_STEAM_ID: {
-        methods: ['GET', 'OPTIONS'],
-        pattern: createPattern(ROUTES.GET_STEAM_ID),
-        action: (query: URLSearchParams) => {
-            const identifier = query.get('identifier') || '';
-            return steam.getSteamId(identifier);
-        }
-    },
+  GET_STEAM_ID: {
+    methods: ['GET', 'OPTIONS'],
+    pattern: createPattern(ROUTES.GET_STEAM_ID),
+    action: (query: URLSearchParams) => {
+      const identifier = query.get('identifier') || '';
+      return steam.getSteamId(identifier);
+    }
+  },
 };
 
 // start server
 serve(async (req) => {
-    const url = new URL(req.url);
-    return await runRoute(req.method, url);
+  const url = new URL(req.url);
+  return await runRoute(req.method, url);
 }, {
-    port: Number(SERVER_PORT)
+  port: Number(SERVER_PORT)
 });
 
 async function runRoute(method: string, url: URL): Promise<Response> {
-    const routes = Object.values(routeMap);
+  const routes = Object.values(routeMap);
 
-    for (const route of routes) {
-        const out = route.pattern.exec({
-            protocol: url.protocol,
-            pathname: url.pathname,
-            hostname: url.host,
-            search: url.search
-        });
-
-        if (out !== null) {
-            if (!route.methods.includes(method)) {
-                return new Response('405 Method Not Allowed', {
-                    status: 405,
-                    headers: { 'content-type': 'text/plain' }
-                });
-            }
-
-            const query = new URLSearchParams(out.search.input);
-            const params = out.pathname.groups;
-            const payload = await route.action(query, params);
-
-            return new Response(JSON.stringify(payload), {
-                status: payload.error ? 500 : 200,
-                headers: {
-                    'content-type': 'application/json',
-                    'access-control-allow-origin': ALLOW_ORIGIN,
-                    'access-control-allow-methods': route.methods.join(', '),
-                    'access-control-allow-headers': 'Authorization, Origin, Accept, Content-Type, X-Requested-With'
-                }
-            });
-        }
-    }
-
-    return new Response('404', {
-        status: 404,
-        statusText: 'Not Found'
+  for (const route of routes) {
+    const out = route.pattern.exec({
+      protocol: url.protocol,
+      pathname: url.pathname,
+      hostname: url.host,
+      search: url.search
     });
+
+    if (out !== null) {
+      if (!route.methods.includes(method)) {
+        return new Response('405 Method Not Allowed', {
+          status: 405,
+          headers: { 'content-type': 'text/plain' }
+        });
+      }
+
+      const query = new URLSearchParams(out.search.input);
+      const params = out.pathname.groups;
+      const payload = await route.action(query, params);
+
+      return new Response(JSON.stringify(payload), {
+        status: payload.error ? 500 : 200,
+        headers: {
+          'content-type': 'application/json',
+          'access-control-allow-origin': ALLOW_ORIGIN,
+          'access-control-allow-methods': route.methods.join(', '),
+          'access-control-allow-headers': 'Authorization, Origin, Accept, Content-Type, X-Requested-With'
+        }
+      });
+    }
+  }
+
+  return new Response('404', {
+    status: 404,
+    statusText: 'Not Found'
+  });
 }

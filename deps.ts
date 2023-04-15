@@ -1,6 +1,6 @@
 if (Deno.env.get('MODE') != 'PROD') {
-    // will load .env file outside of PROD environment
-    await import('https://deno.land/std@0.154.0/dotenv/load.ts');
+  // will load .env file outside of PROD environment
+  await import('https://deno.land/std@0.154.0/dotenv/load.ts');
 }
 
 export { serve } from 'https://deno.land/std@0.153.0/http/server.ts';
