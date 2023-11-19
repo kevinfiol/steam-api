@@ -7,18 +7,21 @@ import { ROUTES } from './routes.ts';
 // load .env variables
 const SERVER_PORT = Deno.env.get('SERVER_PORT') || 80;
 const STEAM_API_KEY = Deno.env.get('STEAM_API_KEY') || '';
+const ALLOW_ORIGIN = Deno.env.get('ALLOW_ORIGIN') || '*';
+
+const PG_SSL = Deno.env.get('PG_SSL') === 'true';
 const PG_USERNAME = Deno.env.get('PG_USERNAME') || '';
 const PG_PASSWORD = Deno.env.get('PG_PASSWORD') || '';
 const PG_DB = Deno.env.get('PG_DB') || '';
 const PG_HOST = Deno.env.get('PG_HOST') || '';
 const PG_PORT = Deno.env.get('PG_PORT') || '';
-const ALLOW_ORIGIN = Deno.env.get('ALLOW_ORIGIN') || '*';
 
 // create db instance
 const db = Postgres({
   // need `keep_alive` while Deno.Conn#setKeepAlive is unstable
   // todo: remove this in the future
   keep_alive: false,
+  ssl: PG_SSL,
   host: PG_HOST,
   port: PG_PORT,
   database: PG_DB,
